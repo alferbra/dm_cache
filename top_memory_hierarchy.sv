@@ -18,7 +18,7 @@ module top_memory_hierarchy (
     cache_to_mem_type cache_to_mem;
     mem_to_cache_type mem_to_cache;
     
-    sram_controller #(.rw_cycles(2)) sram_controller_inst(
+    sram_controller #(.rw_cycles(3)) sram_controller_inst(
         .clk (clk),
         .rst (rst),
         .cache_to_mem (cache_to_mem),

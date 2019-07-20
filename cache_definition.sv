@@ -10,12 +10,12 @@ package cache_definition;
 	typedef struct packed{
 		bit valid;
 		bit dirty;
-		bit [19:12] tag;	//9-bit tag field
+		bit [19:11] tag;	//9-bit tag field
 	}cache_table_type;
 	
 	//data structure for cache
 	typedef struct{
-		bit [9:0] index;
+		bit [8:0] index;
 		bit we;
 	}cache_index_type;
 	
@@ -37,6 +37,7 @@ package cache_definition;
 	typedef struct{
 		bit [15:0] data;
 		bit ready;				//result is ready when the request read/write is a hit
+		bit stopped;
 	}cache_to_cpu_type;
 	
 	//----------------------------------------------------------------

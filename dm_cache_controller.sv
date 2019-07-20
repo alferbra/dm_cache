@@ -16,7 +16,7 @@ module dm_cache_controller (
 	output cache_to_cpu_type cache_to_cpu);
 	
 	//posible states
-	typedef enum { idle, compare_tag, allocate, write_back } cache_state_type;
+	typedef enum { compare_tag, allocate, write_back } cache_state_type;
 	
 	//state register
 	cache_state_type current_state, next_state;
@@ -36,10 +36,15 @@ module dm_cache_controller (
 	
 	//temporary variables for memory request (cache -> memory)
 	cache_to_mem_type next_cache_to_mem;
+
+	//variables for register (cpu -> cache)
+	cpu_to_cache_type next_cpu_to_cache;
 	
 	//connect to output ports
 	assign cache_to_mem = next_cache_to_mem;
 	assign cache_to_cpu.data = next_cache_to_cpu.data;
+	assign cache_to_cpu.ready = next_cache_to_cpu.ready;
+	//assign cache_to_cpu.stopped = next_cache_to_cpu.stopped;
 	
 	always_comb begin
 		
@@ -49,28 +54,28 @@ module dm_cache_controller (
 		//no state change by default
 		next_state = current_state;
 		
-		next_cache_to_cpu = '{0,0};
+		next_cache_to_cpu = '{0,0,0};
 		table_write = '{0,0,0};
 		
 		//table index by default
 		table_index.we = '0;
-		table_index.index = cpu_to_cache.addr [11:2];
+		table_index.index = next_cpu_to_cache.addr [10:2];
 		
 		//cache memory index by default
 		data_index.we = '0;
-		data_index.index = cpu_to_cache.addr [11:2];
+		data_index.index = next_cpu_to_cache.addr [10:2];
 
 		//Modify word		
 		data_write = data_read;
-		case (cpu_to_cache.addr [1:0])
-			2'b00: data_write[15:0] = cpu_to_cache.data;
-			2'b01: data_write[31:16] = cpu_to_cache.data;
-			2'b10: data_write[47:32] = cpu_to_cache.data;
-			2'b11: data_write[63:48] = cpu_to_cache.data;
+		case (next_cpu_to_cache.addr [1:0])
+			2'b00: data_write[15:0] = next_cpu_to_cache.data;
+			2'b01: data_write[31:16] = next_cpu_to_cache.data;
+			2'b10: data_write[47:32] = next_cpu_to_cache.data;
+			2'b11: data_write[63:48] = next_cpu_to_cache.data;
 		endcase	
 		
 		//Read word
-		case (cpu_to_cache.addr [1:0])
+		case (next_cpu_to_cache.addr [1:0])
 			2'b00: next_cache_to_cpu.data = data_read[15:0];
 			2'b01: next_cache_to_cpu.data = data_read[31:16];
 			2'b10: next_cache_to_cpu.data = data_read[47:32];
@@ -78,7 +83,7 @@ module dm_cache_controller (
 		endcase
 	
 		//memory request address
-		next_cache_to_mem.addr = cpu_to_cache.addr;
+		next_cache_to_mem.addr = next_cpu_to_cache.addr;
 		
 		//memory request data
 		next_cache_to_mem.data = data_read;
@@ -93,62 +98,70 @@ module dm_cache_controller (
 		
 		case (current_state)
 			
-			idle: begin
-				//If valid bit is set to 1, then there is a cpu opperation
-				if (cpu_to_cache.valid)
-					next_state = compare_tag;
-			end
+			// idle: begin
+			// 	//If valid bit is set to 1, then there is a cpu opperation
+			// 	if (cpu_to_cache.valid)
+			// 		next_state = compare_tag;
+			// end
 			
 			compare_tag: begin
-				//Cache hit
-				if ((cpu_to_cache.addr[19:12] == table_read.tag) && table_read.valid) begin
-					next_cache_to_cpu.ready = '1;
-					
-					//write hit
-					if (cpu_to_cache.rw) begin
-						table_index.we = '1;
-						data_index.we = '1;
+				//If valid bit is set to 1, then there is a cpu opperation
+				if (next_cpu_to_cache.valid) begin
+				
+					//Cache hit
+					if ((next_cpu_to_cache.addr[19:11] == table_read.tag) && table_read.valid) begin
+						next_cache_to_cpu.ready = '1;
 						
-						//No changes in cache table
-						table_write.tag = table_read.tag;
-						table_write.valid = '1;
+						//write hit
+						if (next_cpu_to_cache.rw) begin
+							table_index.we = '1;
+							data_index.we = '1;
+							
+							//No changes in cache table
+							table_write.tag = table_read.tag;
+							table_write.valid = '1;
+							
+							table_write.dirty = '1;	//We are changing the data value
+						end
 						
-						table_write.dirty = '1;	//We are changing the data value
+						//next_state = idle;
 					end
 					
-					next_state = idle;
-				end
-				
-				//Cache miss
-				else begin
-					//Change "look up table"
-					table_index.we = 1;
-					table_write.valid = '1;
-					table_write.tag = cpu_to_cache.addr [19:12];
-					table_write.dirty = cpu_to_cache.rw;	//Is dirty if it is a write
-					
-					next_cache_to_mem.valid = '1;	//Generate a request to memory
-					
-					if (table_read.valid == '0 || table_read.dirty == '0)
-						next_state = allocate;
-					
+					//Cache miss
 					else begin
-					//Miss with dirty bit
-						//Write-back address
-						next_cache_to_mem.addr = {table_read.tag, cpu_to_cache.addr [11:0]};
-						next_cache_to_mem.rw = '1;
+						next_cache_to_cpu.stopped = '1;
+
+						//Change "look up table"
+						table_index.we = '1;
+						table_write.valid = '1;
+						table_write.tag = next_cpu_to_cache.addr [19:11];
+						table_write.dirty = next_cpu_to_cache.rw;	//Is dirty if it is a write
 						
-						next_state = write_back;
+						next_cache_to_mem.valid = '1;	//Generate a request to memory
+						
+						if (table_read.valid == '0 || table_read.dirty == '0)
+							next_state = allocate;
+						
+						else begin
+						//Miss with dirty bit
+							//Write-back address
+							next_cache_to_mem.addr = {table_read.tag, next_cpu_to_cache.addr [10:0]};
+							next_cache_to_mem.rw = '1;
+							
+							next_state = write_back;
+						end
 					end
 				end
 			end
 			
 			allocate: begin
+				next_cache_to_cpu.stopped = '1;
 				next_cache_to_mem.valid = '1;
 				//Memory is ready
 				if(mem_to_cache.ready) begin
 					next_state = compare_tag;
 										
+					next_cache_to_mem.valid = '0;					
 					data_write = mem_to_cache.data;
 					
 					data_index.we = '1;
@@ -156,8 +169,9 @@ module dm_cache_controller (
 			end
 			
 			write_back: begin
-				next_cache_to_mem.rw = '1;
-				next_cache_to_mem.valid = '1;
+				next_cache_to_cpu.stopped = '1;
+				//next_cache_to_mem.rw = '1;
+				//next_cache_to_mem.valid = '1;
 				//Write-back is completed
 				if(mem_to_cache.ready) begin
 					next_cache_to_mem.valid = '1;
@@ -172,12 +186,19 @@ module dm_cache_controller (
 	
 	always_ff @(posedge clk) begin
 		if(!rst) 
-			current_state <= idle;
-		
+			current_state <= compare_tag;
 		else
 			current_state <= next_state;
 
-		cache_to_cpu.ready <= next_cache_to_cpu.ready;
+		//cache_to_cpu.ready <= next_cache_to_cpu.ready;
+		cache_to_cpu.stopped <= next_cache_to_cpu.stopped;
+	end
+
+	always_ff @(posedge clk) begin
+		if (next_state != compare_tag || current_state !=compare_tag)
+			next_cpu_to_cache <= next_cpu_to_cache;
+		else
+			next_cpu_to_cache <= cpu_to_cache;
 	end
 
 	//Instanciate dm_cache_mem and dm_cache_table

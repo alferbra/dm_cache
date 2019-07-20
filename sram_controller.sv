@@ -36,9 +36,13 @@ module sram_controller (
     //temporary variable for SRAM memory results (SRAM -> cache)
     mem_to_cache_type next_mem_to_cache;
 
+    cache_to_mem_type hold_cache_to_mem;
+
     //connect to output port
     assign mem_to_cache = next_mem_to_cache;
-    assign data = (cache_to_mem.valid && !WE_N) ? data_write : 'z;
+    assign addr = (cache_to_mem.valid) ? cache_to_mem.addr : hold_cache_to_mem.addr;
+    assign data_write = (cache_to_mem.rw) ? cache_to_mem.data : hold_cache_to_mem.data;
+    assign data = (!WE_N) ? data_write : 'z;
 
     //--------------------------------------------------------------------------
     //------------------------------- SRAM FSM ---------------------------------
@@ -52,8 +56,12 @@ module sram_controller (
         WE_N = '1;
         LB_N = '0;
         UB_N = '0;
-        addr = cache_to_mem.addr;
-        data_write = cache_to_mem.data;
+        
+        // if (cache_to_mem.valid)
+        //     addr = cache_to_mem.addr;
+
+        // if (cache_to_mem.rw)
+        //     data_write = cache_to_mem.data;
 
         case (current_state)
 
@@ -84,8 +92,10 @@ module sram_controller (
             end
 
             write: begin
+                WE_N = '0;
                 if (count == 0) begin
                     next_mem_to_cache.ready = '1;
+                    WE_N = '1;
 
                     next_state = idle;
                 end
@@ -104,6 +114,8 @@ module sram_controller (
             count <= rw_cycles - 1;
         else
             count <= count - 1;
+
+        hold_cache_to_mem <= cache_to_mem;
     end
 
 endmodule
