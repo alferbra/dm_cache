@@ -43,7 +43,7 @@ module dm_cache_controller (
 	//connect to output ports
 	assign cache_to_mem = next_cache_to_mem;
 	assign cache_to_cpu.data = next_cache_to_cpu.data;
-	assign cache_to_cpu.ready = next_cache_to_cpu.ready;
+	assign cache_to_cpu.ready = ((cpu_to_cache.addr[19:11] != table_read.tag) || !table_read.valid) ? '0 : next_cache_to_cpu.ready;
 	//assign cache_to_cpu.stopped = next_cache_to_cpu.stopped;
 	
 	always_comb begin

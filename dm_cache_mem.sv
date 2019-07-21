@@ -14,7 +14,6 @@ module dm_cache_mem (
 	assign data_read = mem [data_index.index];
 	
 	always_ff @(posedge clk) begin
-	
 		if (data_index.we)
 			mem [data_index.index] <= data_write;		
 	end

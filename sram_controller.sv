@@ -36,6 +36,7 @@ module sram_controller (
     //temporary variable for SRAM memory results (SRAM -> cache)
     mem_to_cache_type next_mem_to_cache;
 
+    //temporary variable to hold the cache request (cache -> sram controller)
     cache_to_mem_type hold_cache_to_mem;
 
     //connect to output port
