@@ -270,3 +270,6 @@ simulation/verilog_libs/cycloneive_ver/_lib1_8.qpg
 simulation/verilog_libs/cycloneive_ver/_lib1_8.qtl
 simulation/verilog_libs/lpm_ver/_lib1_4.qdb
 simulation/verilog_libs/lpm_ver/_lib1_4.qpg
+simulation/rtl_work/_lib1_1.qpg
+simulation/rtl_work/_lib1_1.qdb
+simulation/rtl_work/_lib1_1.qtl
