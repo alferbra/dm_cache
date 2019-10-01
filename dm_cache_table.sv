@@ -9,7 +9,7 @@ module dm_cache_table (
 	input cache_table_type table_write,		//write port
 	output cache_table_type table_read);	//read port
 	
-	cache_table_type mem [0:512];	//1024 entries (tag+valid+dirty)
+	cache_table_type mem [0:1023];	//1024 entries (tag+valid+dirty)
 
 	assign table_read = mem [table_index.index];
 	

@@ -10,17 +10,17 @@ package cache_definition;
 	typedef struct packed{
 		bit valid;
 		bit dirty;
-		bit [19:11] tag;	//9-bit tag field
+		bit [19:14] tag;	//6-bit tag field
 	}cache_table_type;
 	
 	//data structure for cache
 	typedef struct{
-		bit [8:0] index;
+		bit [9:0] index;
 		bit we;
 	}cache_index_type;
 	
 	//16-bit cache data
-	typedef bit [63:0] cache_data_type;
+	typedef bit [127:0] cache_data_type;
 	
 	//---------------------------------------------------------------
 	//------	data structures for CPU <-> Cache controller	-----
@@ -28,14 +28,14 @@ package cache_definition;
 	//CPU request (CPU -> Cache controller)
 	typedef struct{
 		bit [19:0] addr;
-		bit [15:0] data;
+		bit [31:0] data;
 		bit rw;					// 0=read / 1=write
 		bit valid;				// valid read/write request from the processor		
 	}cpu_to_cache_type;
 	
 	//Cache result (Cache controller -> CPU)
 	typedef struct{
-		bit [15:0] data;
+		bit [31:0] data;
 		bit ready;				//result is ready when the request read/write is a hit
 		bit stopped;
 	}cache_to_cpu_type;

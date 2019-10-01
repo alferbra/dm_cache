@@ -9,7 +9,7 @@ module dm_cache_mem (
 	input cache_data_type data_write,	//write port
 	output cache_data_type data_read);	//read port
 	
-	cache_data_type mem [0:512];	//1024 entries
+	cache_data_type mem [0:1023];	//1024 entries
 
 	assign data_read = mem [data_index.index];
 	
