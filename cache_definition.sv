@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------------------------------
 
-// Package definition for a 16KB direct mapped cache memory connected to a 1M x 16 secondary memory
+// Package definition for a 16KiB direct mapped cache memory connected to a 1M x 16 secondary memory
 
 //---------------------------------------------------------------------------------------------------
 
